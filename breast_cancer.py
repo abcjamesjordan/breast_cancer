@@ -336,7 +336,7 @@ def compute_cost_with_regularization(A3, Y, parameters, lambd):
     if L >= 5:
         W5 = parameters['W5']
 
-    cross_entropy_cost = compute_cost(A3, Y) # This gives you the cross-entropy part of the cost
+    cross_entropy_cost = compute_cost(A3, Y, parameters, lambd) # This gives you the cross-entropy part of the cost
 
     ### START CODE HERE ### (approx. 1 line)
     if L == 1:
@@ -630,140 +630,6 @@ def L_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 30
 
     return parameters
 
-def two_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 3000, print_cost=False):
-    """
-    Implements a two-layer neural network: LINEAR->RELU->LINEAR->SIGMOID.
-
-    Arguments:
-    X -- input data, of shape (n_x, number of examples)
-    Y -- true "label" vector (containing 1 if cat, 0 if non-cat), of shape (1, number of examples)
-    layers_dims -- dimensions of the layers (n_x, n_h, n_y)
-    num_iterations -- number of iterations of the optimization loop
-    learning_rate -- learning rate of the gradient descent update rule
-    print_cost -- If set to True, this will print the cost every 100 iterations
-
-    Returns:
-    parameters -- a dictionary containing W1, W2, b1, and b2
-    """
-
-    np.random.seed(1)
-    grads = {}
-    costs = []                              # to keep track of the cost
-    m = X.shape[1]                           # number of examples
-    (n_x, n_h, n_y) = layers_dims
-
-    # Initialize parameters dictionary, by calling one of the functions you'd previously implemented
-    ### START CODE HERE ### (≈ 1 line of code)
-    parameters = initialize_parameters(n_x, n_h, n_y)
-    ### END CODE HERE ###
-
-    # Get W1, b1, W2 and b2 from the dictionary parameters.
-    W1 = parameters["W1"]
-    b1 = parameters["b1"]
-    W2 = parameters["W2"]
-    b2 = parameters["b2"]
-
-    # Loop (gradient descent)
-
-    for i in range(0, num_iterations):
-
-        # Forward propagation: LINEAR -> RELU -> LINEAR -> SIGMOID. Inputs: "X, W1, b1, W2, b2". Output: "A1, cache1, A2, cache2".
-        ### START CODE HERE ### (≈ 2 lines of code)
-        A1, cache1 = linear_activation_forward(X, W1, b1, 'relu')
-        A2, cache2 = linear_activation_forward(A1, W2, b2, 'sigmoid')
-        ### END CODE HERE ###
-
-        # Compute cost
-        ### START CODE HERE ### (≈ 1 line of code)
-        cost = compute_cost(A2, Y, parameters, lambd)
-        ### END CODE HERE ###
-
-        # Initializing backward propagation
-        dA2 = - (np.divide(Y, A2) - np.divide(1 - Y, 1 - A2))
-
-        # Backward propagation. Inputs: "dA2, cache2, cache1". Outputs: "dA1, dW2, db2; also dA0 (not used), dW1, db1".
-        ### START CODE HERE ### (≈ 2 lines of code)
-        dA1, dW2, db2 = linear_activation_backward(dA2, cache2, lambd, 'sigmoid')
-        dA0, dW1, db1 = linear_activation_backward(dA1, cache1, lambd, 'relu')
-        ### END CODE HERE ###
-
-        # Set grads['dWl'] to dW1, grads['db1'] to db1, grads['dW2'] to dW2, grads['db2'] to db2
-        grads['dW1'] = dW1
-        grads['db1'] = db1
-        grads['dW2'] = dW2
-        grads['db2'] = db2
-
-        # Update parameters.
-        ### START CODE HERE ### (approx. 1 line of code)
-        parameters = update_parameters(parameters, grads, learning_rate)
-        ### END CODE HERE ###
-
-        # Retrieve W1, b1, W2, b2 from parameters
-        W1 = parameters["W1"]
-        b1 = parameters["b1"]
-        W2 = parameters["W2"]
-        b2 = parameters["b2"]
-
-        # Print the cost every 100 training example
-        if print_cost and i % 100 == 0:
-            print("Cost after iteration {}: {}".format(i, np.squeeze(cost)))
-        if print_cost and i % 100 == 0:
-            costs.append(cost)
-
-    # plot the cost
-
-    plt.plot(np.squeeze(costs))
-    plt.ylabel('cost')
-    plt.xlabel('iterations (per hundreds)')
-    plt.title("Learning rate =" + str(learning_rate))
-    plt.show()
-
-    return parameters
-
-def backward_propagation_with_regularization(X, Y, cache, lambd):
-    """
-    Implements the backward propagation of our baseline model to which we added an L2 regularization.
-
-    Arguments:
-    X -- input dataset, of shape (input size, number of examples)
-    Y -- "true" labels vector, of shape (output size, number of examples)
-    cache -- cache output from forward_propagation()
-    lambd -- regularization hyperparameter, scalar
-
-    Returns:
-    gradients -- A dictionary with the gradients with respect to each parameter, activation and pre-activation variables
-    """
-
-    m = X.shape[1]
-    (Z1, A1, W1, b1, Z2, A2, W2, b2, Z3, A3, W3, b3) = cache
-
-    dZ3 = A3 - Y
-
-    ### START CODE HERE ### (approx. 1 line)
-    dW3 = 1./m * np.dot(dZ3, A2.T) + (lambd * W3 / m)
-    ### END CODE HERE ###
-    db3 = 1./m * np.sum(dZ3, axis=1, keepdims = True)
-
-    dA2 = np.dot(W3.T, dZ3)
-    dZ2 = np.multiply(dA2, np.int64(A2 > 0))
-    ### START CODE HERE ### (approx. 1 line)
-    dW2 = 1./m * np.dot(dZ2, A1.T) + (lambd * W2 / m)
-    ### END CODE HERE ###
-    db2 = 1./m * np.sum(dZ2, axis=1, keepdims = True)
-
-    dA1 = np.dot(W2.T, dZ2)
-    dZ1 = np.multiply(dA1, np.int64(A1 > 0))
-    ### START CODE HERE ### (approx. 1 line)
-    dW1 = 1./m * np.dot(dZ1, X.T) + (lambd * W1 / m)
-    ### END CODE HERE ###
-    db1 = 1./m * np.sum(dZ1, axis=1, keepdims = True)
-
-    gradients = {"dZ3": dZ3, "dW3": dW3, "db3": db3,"dA2": dA2,
-                 "dZ2": dZ2, "dW2": dW2, "db2": db2, "dA1": dA1,
-                 "dZ1": dZ1, "dW1": dW1, "db1": db1}
-
-    return gradients
-
 
 # Convert data to numpy arrarys
 bc_train_x = bc_train_x.to_numpy().T
@@ -784,37 +650,7 @@ pred_train = predict(bc_train_x, bc_train_y, parameters)
 
 pred_test = predict(bc_dev_x, bc_dev_y, parameters)
 
-pred_test = predict(bc_test_x, bc_test_y, parameters)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+pipred_test = predict(bc_test_x, bc_test_y, parameters)
 
 
 
@@ -824,3 +660,97 @@ pred_test = predict(bc_test_x, bc_test_y, parameters)
 
 
 # End
+
+
+
+
+
+# def two_layer_model(X, Y, layers_dims, learning_rate = 0.0075, num_iterations = 3000, print_cost=False, lambd):
+#     """
+#     Implements a two-layer neural network: LINEAR->RELU->LINEAR->SIGMOID.
+
+#     Arguments:
+#     X -- input data, of shape (n_x, number of examples)
+#     Y -- true "label" vector (containing 1 if cat, 0 if non-cat), of shape (1, number of examples)
+#     layers_dims -- dimensions of the layers (n_x, n_h, n_y)
+#     num_iterations -- number of iterations of the optimization loop
+#     learning_rate -- learning rate of the gradient descent update rule
+#     print_cost -- If set to True, this will print the cost every 100 iterations
+
+#     Returns:
+#     parameters -- a dictionary containing W1, W2, b1, and b2
+#     """
+
+#     np.random.seed(1)
+#     grads = {}
+#     costs = []                              # to keep track of the cost
+#     m = X.shape[1]                           # number of examples
+#     (n_x, n_h, n_y) = layers_dims
+
+#     # Initialize parameters dictionary, by calling one of the functions you'd previously implemented
+#     ### START CODE HERE ### (≈ 1 line of code)
+#     parameters = initialize_parameters(n_x, n_h, n_y)
+#     ### END CODE HERE ###
+
+#     # Get W1, b1, W2 and b2 from the dictionary parameters.
+#     W1 = parameters["W1"]
+#     b1 = parameters["b1"]
+#     W2 = parameters["W2"]
+#     b2 = parameters["b2"]
+
+#     # Loop (gradient descent)
+
+#     for i in range(0, num_iterations):
+
+#         # Forward propagation: LINEAR -> RELU -> LINEAR -> SIGMOID. Inputs: "X, W1, b1, W2, b2". Output: "A1, cache1, A2, cache2".
+#         ### START CODE HERE ### (≈ 2 lines of code)
+#         A1, cache1 = linear_activation_forward(X, W1, b1, 'relu')
+#         A2, cache2 = linear_activation_forward(A1, W2, b2, 'sigmoid')
+#         ### END CODE HERE ###
+
+#         # Compute cost
+#         ### START CODE HERE ### (≈ 1 line of code)
+#         cost = compute_cost(A2, Y, parameters, lambd)
+#         ### END CODE HERE ###
+
+#         # Initializing backward propagation
+#         dA2 = - (np.divide(Y, A2) - np.divide(1 - Y, 1 - A2))
+
+#         # Backward propagation. Inputs: "dA2, cache2, cache1". Outputs: "dA1, dW2, db2; also dA0 (not used), dW1, db1".
+#         ### START CODE HERE ### (≈ 2 lines of code)
+#         dA1, dW2, db2 = linear_activation_backward(dA2, cache2, lambd, 'sigmoid')
+#         dA0, dW1, db1 = linear_activation_backward(dA1, cache1, lambd, 'relu')
+#         ### END CODE HERE ###
+
+#         # Set grads['dWl'] to dW1, grads['db1'] to db1, grads['dW2'] to dW2, grads['db2'] to db2
+#         grads['dW1'] = dW1
+#         grads['db1'] = db1
+#         grads['dW2'] = dW2
+#         grads['db2'] = db2
+
+#         # Update parameters.
+#         ### START CODE HERE ### (approx. 1 line of code)
+#         parameters = update_parameters(parameters, grads, learning_rate)
+#         ### END CODE HERE ###
+
+#         # Retrieve W1, b1, W2, b2 from parameters
+#         W1 = parameters["W1"]
+#         b1 = parameters["b1"]
+#         W2 = parameters["W2"]
+#         b2 = parameters["b2"]
+
+#         # Print the cost every 100 training example
+#         if print_cost and i % 100 == 0:
+#             print("Cost after iteration {}: {}".format(i, np.squeeze(cost)))
+#         if print_cost and i % 100 == 0:
+#             costs.append(cost)
+
+#     # plot the cost
+
+#     plt.plot(np.squeeze(costs))
+#     plt.ylabel('cost')
+#     plt.xlabel('iterations (per hundreds)')
+#     plt.title("Learning rate =" + str(learning_rate))
+#     plt.show()
+
+#     return parameters
